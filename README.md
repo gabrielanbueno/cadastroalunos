@@ -51,21 +51,6 @@ Caso o arquivo não esteja presente, a aplicação usa automaticamente a fonte
 **Orbitron** (Google Fonts) como alternativa visual "digital/futurista",
 sem quebrar o layout.
 
-## 📤 Publicar no GitHub
-
-1. Crie um repositório novo no GitHub (ex.: `sistema-escolar`).
-2. No terminal, dentro da pasta do projeto:
-   ```bash
-   git init
-   git add .
-   git commit -m "Sistema de gestão de alunos - versão inicial"
-   git branch -M main
-   git remote add origin https://github.com/SEU-USUARIO/sistema-escolar.git
-   git push -u origin main
-   ```
-   > Dica: adicione um `.gitignore` com `venv/` e `escola.db` se não quiser
-   > versionar o ambiente virtual e o banco local.
-
 ## ☁️ Publicar no Streamlit Community Cloud
 
 1. Acesse https://share.streamlit.io/ e faça login com sua conta GitHub.
