@@ -51,24 +51,6 @@ Caso o arquivo não esteja presente, a aplicação usa automaticamente a fonte
 **Orbitron** (Google Fonts) como alternativa visual "digital/futurista",
 sem quebrar o layout.
 
-## ☁️ Publicar no Streamlit Community Cloud
-
-1. Acesse https://share.streamlit.io/ e faça login com sua conta GitHub.
-2. Clique em **"New app"**.
-3. Selecione o repositório `sistema-escolar` e a branch `main`.
-4. Em **"Main file path"**, informe `app.py`.
-5. Clique em **"Deploy"**.
-6. Aguarde alguns instantes — o Streamlit Cloud vai instalar as dependências
-   do `requirements.txt` e publicar sua aplicação automaticamente.
-7. Toda vez que você der `git push` para a branch `main`, o app é atualizado
-   sozinho na nuvem.
-
-> ⚠️ Observação: o SQLite no Streamlit Community Cloud **não é persistente**
-> entre reinicializações do app (o sistema de arquivos é efêmero). Para uso
-> em produção real, considere migrar para um banco externo (ex. Postgres via
-> Supabase/Neon) no futuro — para fins de estudo/demonstração, o SQLite local
-> funciona perfeitamente.
-
 ## 📐 Regras de negócio
 
 - **Média** = (Nota 1 + Nota 2) / 2
