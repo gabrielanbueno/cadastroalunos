@@ -37,19 +37,6 @@ escola-app/
    O arquivo `escola.db` (SQLite) é criado sozinho na primeira execução, na
    mesma pasta do `app.py`.
 
-## 🔤 Sobre a fonte DS-Digital
-
-O layout usa a fonte **DS-Digital**, de Dusit Supasawat
-(https://www.dafont.com/pt/ds-digital.font). Por licença, ela não pode ser
-redistribuída automaticamente, então:
-
-1. Baixe a fonte no link acima.
-2. Copie o arquivo `.ttf` (ex.: `DS-DIGI.TTF`) para a pasta `assets/`.
-3. O `app.py` já referencia `assets/DS-DIGI.TTF` via `@font-face`.
-
-Caso o arquivo não esteja presente, a aplicação usa automaticamente a fonte
-**Orbitron** (Google Fonts) como alternativa visual "digital/futurista",
-sem quebrar o layout.
 
 ## 📐 Regras de negócio
 
