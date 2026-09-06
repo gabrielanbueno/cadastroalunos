@@ -57,7 +57,8 @@ def get_connection():
 
 
 def criar_tabela():
-    """Cria a tabela 'alunos' automaticamente caso ela não exista."""
+    """Cria a tabela 'alunos' automaticamente caso ela não exista, e migra
+    bancos de dados já existentes que ainda não possuem a coluna 'idade'."""
     with get_connection() as conn:
         conn.execute(
             """
@@ -67,6 +68,7 @@ def criar_tabela():
                 email TEXT NOT NULL,
                 matricula TEXT NOT NULL UNIQUE,
                 curso TEXT NOT NULL,
+                idade INTEGER NOT NULL DEFAULT 0,
                 nota1 FLOAT NOT NULL,
                 nota2 FLOAT NOT NULL,
                 media FLOAT NOT NULL,
@@ -75,16 +77,22 @@ def criar_tabela():
             """
         )
 
+        # Migração: se o banco já existia antes da coluna 'idade' ser criada,
+        # adiciona a coluna sem perder os dados já cadastrados.
+        colunas = [row["name"] for row in conn.execute("PRAGMA table_info(alunos)")]
+        if "idade" not in colunas:
+            conn.execute("ALTER TABLE alunos ADD COLUMN idade INTEGER NOT NULL DEFAULT 0")
 
-def inserir_aluno(nome, email, matricula, curso, nota1, nota2, media, status):
+
+def inserir_aluno(nome, email, matricula, curso, idade, nota1, nota2, media, status):
     """Insere um novo aluno no banco. Levanta exceção se a matrícula já existir."""
     with get_connection() as conn:
         conn.execute(
             """
-            INSERT INTO alunos (nome_completo, email, matricula, curso, nota1, nota2, media, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO alunos (nome_completo, email, matricula, curso, idade, nota1, nota2, media, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (nome, email, matricula, curso, float(nota1), float(nota2), float(media), status),
+            (nome, email, matricula, curso, int(idade), float(nota1), float(nota2), float(media), status),
         )
 
 
@@ -103,17 +111,17 @@ def buscar_aluno_por_id(aluno_id):
     return dict(row) if row else None
 
 
-def atualizar_aluno(aluno_id, nome, email, matricula, curso, nota1, nota2, media, status):
+def atualizar_aluno(aluno_id, nome, email, matricula, curso, idade, nota1, nota2, media, status):
     """Atualiza os dados de um aluno existente."""
     with get_connection() as conn:
         conn.execute(
             """
             UPDATE alunos
-               SET nome_completo = ?, email = ?, matricula = ?, curso = ?,
+               SET nome_completo = ?, email = ?, matricula = ?, curso = ?, idade = ?,
                    nota1 = ?, nota2 = ?, media = ?, status = ?
              WHERE id = ?
             """,
-            (nome, email, matricula, curso, float(nota1), float(nota2), float(media), status, aluno_id),
+            (nome, email, matricula, curso, int(idade), float(nota1), float(nota2), float(media), status, aluno_id),
         )
 
 
@@ -143,7 +151,7 @@ def validar_email(email: str) -> bool:
     return re.match(padrao, email) is not None
 
 
-def validar_dados_aluno(nome, email, matricula, curso, nota1, nota2):
+def validar_dados_aluno(nome, email, matricula, curso, idade, nota1, nota2):
     """
     Valida os dados de entrada do formulário.
     Retorna uma lista de mensagens de erro (vazia se tudo estiver ok).
@@ -161,6 +169,13 @@ def validar_dados_aluno(nome, email, matricula, curso, nota1, nota2):
 
     if not curso or not curso.strip():
         erros.append("O curso é obrigatório.")
+
+    try:
+        idade_int = int(idade)
+        if not (1 <= idade_int <= 120):
+            erros.append("Idade deve estar entre 1 e 120 anos.")
+    except (TypeError, ValueError):
+        erros.append("Idade deve ser um número inteiro válido.")
 
     try:
         n1 = float(nota1)
@@ -274,6 +289,7 @@ def tela_cadastrar():
             nome = st.text_input("Nome Completo *")
             matricula = st.text_input("Matrícula *")
             curso = st.text_input("Curso *")
+            idade = st.number_input("Idade *", min_value=1, max_value=120, step=1, format="%d")
         with col2:
             email = st.text_input("E-mail *")
             nota1 = st.number_input("Nota 1", min_value=0.0, max_value=10.0, step=0.1, format="%.1f")
@@ -282,7 +298,7 @@ def tela_cadastrar():
         enviado = st.form_submit_button("💾 Salvar Aluno")
 
     if enviado:
-        erros = validar_dados_aluno(nome, email, matricula, curso, nota1, nota2)
+        erros = validar_dados_aluno(nome, email, matricula, curso, idade, nota1, nota2)
 
         if erros:
             for erro in erros:
@@ -293,7 +309,7 @@ def tela_cadastrar():
         status = calcular_status(media)
 
         try:
-            inserir_aluno(nome.strip(), email.strip(), matricula.strip(), curso.strip(), nota1, nota2, media, status)
+            inserir_aluno(nome.strip(), email.strip(), matricula.strip(), curso.strip(), idade, nota1, nota2, media, status)
             st.success(f"Aluno '{nome}' cadastrado com sucesso! Média: {media} | Status: {status}")
         except sqlite3.IntegrityError:
             st.error(f"Já existe um aluno cadastrado com a matrícula '{matricula}'.")
@@ -325,6 +341,7 @@ def tela_consultar():
         "nome_completo": "Nome",
         "matricula": "Matrícula",
         "curso": "Curso",
+        "idade": "Idade",
         "nota1": "Nota 1",
         "nota2": "Nota 2",
         "media": "Média",
@@ -366,6 +383,9 @@ def tela_editar():
             nome = st.text_input("Nome Completo *", value=aluno["nome_completo"])
             matricula = st.text_input("Matrícula *", value=aluno["matricula"])
             curso = st.text_input("Curso *", value=aluno["curso"])
+            idade = st.number_input(
+                "Idade *", min_value=1, max_value=120, step=1, format="%d", value=int(aluno["idade"])
+            )
         with col2:
             email = st.text_input("E-mail *", value=aluno["email"])
             nota1 = st.number_input(
@@ -378,7 +398,7 @@ def tela_editar():
         atualizar = st.form_submit_button("🔄 Atualizar Dados")
 
     if atualizar:
-        erros = validar_dados_aluno(nome, email, matricula, curso, nota1, nota2)
+        erros = validar_dados_aluno(nome, email, matricula, curso, idade, nota1, nota2)
 
         if erros:
             for erro in erros:
@@ -390,7 +410,7 @@ def tela_editar():
 
         try:
             atualizar_aluno(
-                aluno_id, nome.strip(), email.strip(), matricula.strip(), curso.strip(), nota1, nota2, media, status
+                aluno_id, nome.strip(), email.strip(), matricula.strip(), curso.strip(), idade, nota1, nota2, media, status
             )
             st.success(f"Dados de '{nome}' atualizados com sucesso! Nova média: {media} | Status: {status}")
         except sqlite3.IntegrityError:
@@ -419,6 +439,7 @@ def tela_excluir():
             f"**Nome:** {aluno['nome_completo']}  \n"
             f"**Matrícula:** {aluno['matricula']}  \n"
             f"**Curso:** {aluno['curso']}  \n"
+            f"**Idade:** {aluno['idade']} anos  \n"
             f"**Média:** {aluno['media']} | **Status:** {aluno['status']}"
         )
 
